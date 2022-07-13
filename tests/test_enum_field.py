@@ -359,3 +359,26 @@ class TestUnicodeEnumValues(object):
             EnumField(self.UnicodeEnumTester, error='{values}').fail('by_value')
 
         assert exc_info.value.messages[0] == self.values
+
+
+class TestEnumFieldWhitelist(object):
+
+    def setup(self):
+        self.field = EnumField(EnumTester, whitelist={EnumTester.one,})
+        self.field_by_value = EnumField(EnumTester, whitelist={EnumTester.one,}, by_value=True)
+
+    def test_whitelist_serialze(self):
+        assert self.field._serialize(EnumTester.one, None, object()) == 'one'
+        assert self.field_by_value._serialize(EnumTester.one, None, object()) == 1
+
+        with pytest.raises(ValidationError):
+            self.field._serialize(EnumTester.two, None, object())
+            self.field_by_value._serialize(EnumTester.two, None, object())
+
+    def test_whitelist_deserialize(self):
+        assert self.field._deserialize('one', None, {}) == EnumTester.one
+        assert self.field_by_value._deserialize(1, None, {}) == EnumTester.one
+
+        with pytest.raises(ValidationError):
+            self.field._deserialize('two', None, {})
+            self.field_by_value._deserialize('two', None, {})

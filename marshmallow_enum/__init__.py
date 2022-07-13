@@ -33,10 +33,11 @@ class EnumField(Field):
     }
 
     def __init__(
-            self, enum, by_value=False, load_by=None, dump_by=None, error='', *args, **kwargs
+            self, enum, by_value=False, load_by=None, dump_by=None, error='', whitelist={}, *args, **kwargs
     ):
         self.enum = enum
         self.by_value = by_value
+        self.whitelist = whitelist
 
         if error and any(old in error for old in ('name}', 'value}', 'choices}')):
             warnings.warn(
@@ -74,7 +75,11 @@ class EnumField(Field):
     def _serialize(self, value, attr, obj):
         if value is None:
             return None
-        elif self.dump_by == LoadDumpOptions.value:
+
+        if self.whitelist and value not in self.whitelist:
+            self.fail('by_value', input=value, value=value)
+
+        if self.dump_by == LoadDumpOptions.value:
             return value.value
         else:
             return value.name
@@ -89,18 +94,28 @@ class EnumField(Field):
 
     def _deserialize_by_value(self, value, attr, data):
         try:
-            return self.enum(value)
+            ret = self.enum(value)
         except ValueError:
             self.fail('by_value', input=value, value=value)
+
+        if self.whitelist and ret not in self.whitelist:
+            self.fail('by_value', input=value, value=value)
+
+        return ret
 
     def _deserialize_by_name(self, value, attr, data):
         if not isinstance(value, string_types):
             self.fail('must_be_string', input=value, name=value)
 
         try:
-            return getattr(self.enum, value)
+            ret = getattr(self.enum, value)
         except AttributeError:
             self.fail('by_name', input=value, name=value)
+
+        if self.whitelist and ret not in self.whitelist:
+            self.fail('by_name', input=value, name=value)
+
+        return ret
 
     def fail(self, key, **kwargs):
         kwargs['values'] = ', '.join([text_type(mem.value) for mem in self.enum])
