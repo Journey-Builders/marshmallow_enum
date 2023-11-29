@@ -33,11 +33,12 @@ class EnumField(Field):
     }
 
     def __init__(
-            self, enum, by_value=False, load_by=None, dump_by=None, error='', whitelist={}, *args, **kwargs
+            self, enum, by_value=False, load_by=None, dump_by=None, error='', whitelist={}, blacklist={}, *args, **kwargs
     ):
         self.enum = enum
         self.by_value = by_value
         self.whitelist = whitelist
+        self.blacklist = blacklist
 
         if error and any(old in error for old in ('name}', 'value}', 'choices}')):
             warnings.warn(
@@ -79,6 +80,9 @@ class EnumField(Field):
         if self.whitelist and value not in self.whitelist:
             self.fail('by_value', input=value, value=value)
 
+        if self.blacklist and value in self.blacklist:
+            self.fail('by_value', input=value, value=value)
+
         if self.dump_by == LoadDumpOptions.value:
             return value.value
         else:
@@ -101,6 +105,9 @@ class EnumField(Field):
         if self.whitelist and ret not in self.whitelist:
             self.fail('by_value', input=value, value=value)
 
+        if self.blacklist and ret in self.blacklist:
+            self.fail('by_value', input=value, value=value)
+
         return ret
 
     def _deserialize_by_name(self, value, attr, data):
@@ -114,6 +121,9 @@ class EnumField(Field):
 
         if self.whitelist and ret not in self.whitelist:
             self.fail('by_name', input=value, name=value)
+
+        if self.blacklist and ret in self.blacklist:
+            self.fail('by_value', input=value, value=value)
 
         return ret
 

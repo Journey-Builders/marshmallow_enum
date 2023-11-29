@@ -367,7 +367,7 @@ class TestEnumFieldWhitelist(object):
         self.field = EnumField(EnumTester, whitelist={EnumTester.one,})
         self.field_by_value = EnumField(EnumTester, whitelist={EnumTester.one,}, by_value=True)
 
-    def test_whitelist_serialze(self):
+    def test_whitelist_serialize(self):
         assert self.field._serialize(EnumTester.one, None, object()) == 'one'
         assert self.field_by_value._serialize(EnumTester.one, None, object()) == 1
 
@@ -382,3 +382,28 @@ class TestEnumFieldWhitelist(object):
         with pytest.raises(ValidationError):
             self.field._deserialize('two', None, {})
             self.field_by_value._deserialize('two', None, {})
+
+
+class TestEnumFieldBlacklist(object):
+
+    def setup(self):
+        self.field = EnumField(EnumTester, blacklist={EnumTester.one,})
+        self.field_by_value = EnumField(
+            EnumTester, blacklist={EnumTester.one,}, by_value=True
+        )
+
+    def test_blacklist_serialize(self):
+        assert self.field._serialize(EnumTester.two, None, object()) == 'two'
+        assert self.field_by_value._serialize(EnumTester.two, None, object()) == 2
+
+        with pytest.raises(ValidationError):
+            self.field._serialize(EnumTester.one, None, object())
+            self.field_by_value._serialize(EnumTester.one, None, object())
+
+    def test_blacklist_deserialize(self):
+        assert self.field._deserialize('two', None, {}) == EnumTester.two
+        assert self.field_by_value._deserialize(2, None, {}) == EnumTester.two
+
+        with pytest.raises(ValidationError):
+            self.field._deserialize('one', None, {})
+            self.field_by_value._deserialize('one', None, {})
